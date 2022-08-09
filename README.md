@@ -1,0 +1,2 @@
+# scoin
+simple coin
