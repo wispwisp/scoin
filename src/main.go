@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"io"
 	"log"
 	"net/http"
@@ -15,6 +16,16 @@ import (
 	"github.com/wispwisp/scoin/node"
 	"github.com/wispwisp/scoin/transaction"
 )
+
+type Args struct {
+	Port *string
+}
+
+func registerArgs() (args Args) {
+	args.Port = flag.String("port", "8090", "server port")
+	flag.Parse()
+	return
+}
 
 func loadNodesFromFile() (nodesInfo []node.NodeInfo) {
 	fileName := "../conf/nodes.json"
@@ -37,6 +48,8 @@ func loadNodesFromFile() (nodesInfo []node.NodeInfo) {
 
 func main() {
 	var blockchain []block.Block
+
+	args := registerArgs()
 	nodesInfo := loadNodesFromFile()
 
 	// Create First block (todo: arg --first <addr>)
@@ -151,8 +164,6 @@ func main() {
 		nodesInfo = append(nodesInfo, nodeInfo)
 	})
 
-	port := "8090"
-
-	log.Println("Server started on", port, "port")
-	http.ListenAndServe(":"+port, nil)
+	log.Println("Server started on", *args.Port, "port")
+	http.ListenAndServe(":"+*args.Port, nil)
 }
