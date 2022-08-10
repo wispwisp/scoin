@@ -50,9 +50,10 @@ func main() {
 	transactionsChan := make(chan transaction.Transaction, 100)
 	consensusChan := make(chan block.Block)
 	go mine.Mine(&blockchain, transactionsChan, consensusChan)
-	go consensus.Consensus(&blockchain, nodesInfo, consensusChan)
+	go consensus.Consensus(&blockchain, &nodesInfo, consensusChan)
 
-	// Node Server
+	// http handlers:
+
 	http.HandleFunc("/transaction", func(w http.ResponseWriter, req *http.Request) {
 		log.Println("'/transaction' HTTP handler - add transaction.")
 
@@ -119,6 +120,35 @@ func main() {
 			http.NotFound(w, req)
 			return
 		}
+	})
+
+	http.HandleFunc("/addnode", func(w http.ResponseWriter, req *http.Request) {
+		log.Println("'/addnode' HTTP handler - add addnode")
+
+		// TODO: sync on nodeInfo list.
+		if true {
+			log.Println("UNIMPLEMETED")
+			http.Error(w, "UNIMPLEMETED (until sync desicion)", http.StatusBadRequest)
+			return
+		}
+
+		body, err := io.ReadAll(req.Body)
+		if err != nil {
+			log.Println("error parsing request body:", err)
+			http.Error(w, "error parsing request", http.StatusBadRequest)
+			return
+		}
+
+		var nodeInfo node.NodeInfo
+		err = json.Unmarshal(body, &nodeInfo)
+		if err != nil {
+			log.Println("error parsing node info:", err)
+			http.Error(w, "error parsing node info", http.StatusBadRequest)
+			return
+		}
+
+		// TODO: mutex
+		nodesInfo = append(nodesInfo, nodeInfo)
 	})
 
 	port := "8090"

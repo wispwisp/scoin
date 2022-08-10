@@ -87,14 +87,14 @@ func getLongestBlockchainIndex(blockchains *[][]block.Block) (maxLenght int, max
 	return
 }
 
-func consensusIteration(blockchain *[]block.Block, nodesInfo []node.NodeInfo, consensusChan chan block.Block) {
+func consensusIteration(blockchain *[]block.Block, nodesInfo *[]node.NodeInfo, consensusChan chan block.Block) {
 	log.Println("Check other nodes...")
 
 	// 1) Ask all nodes in network for their blockchains
 	index := len(*blockchain) - 1
 
 	var blockchains [][]block.Block
-	for _, nodeInfo := range nodesInfo {
+	for _, nodeInfo := range *nodesInfo {
 		uri := "http://" + nodeInfo.Uri + "/blockchain/" + strconv.Itoa(index)
 		needUpdate, blockchainPart := checkNode(uri, blockchain)
 		if needUpdate {
