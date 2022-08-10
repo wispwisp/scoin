@@ -5,17 +5,39 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
 	"github.com/wispwisp/scoin/block"
 	"github.com/wispwisp/scoin/consensus"
 	"github.com/wispwisp/scoin/mine"
+	"github.com/wispwisp/scoin/node"
 	"github.com/wispwisp/scoin/transaction"
 )
 
+func loadNodesFromFile() (nodesInfo []node.NodeInfo) {
+	fileName := "../conf/nodes.json"
+	data, err := os.ReadFile(fileName)
+
+	if err != nil {
+		log.Println("Error opening nodes files:", err)
+		return
+	}
+
+	err = json.Unmarshal(data, &nodesInfo)
+	if err != nil {
+		log.Println("error parsing node info:", err)
+		return
+	}
+
+	log.Println(fileName, "readed")
+	return
+}
+
 func main() {
 	var blockchain []block.Block
+	nodesInfo := loadNodesFromFile()
 
 	// Create First block (todo: arg --first <addr>)
 	if true {
@@ -28,7 +50,7 @@ func main() {
 	transactionsChan := make(chan transaction.Transaction, 100)
 	consensusChan := make(chan block.Block)
 	go mine.Mine(&blockchain, transactionsChan, consensusChan)
-	go consensus.Consensus(&blockchain, consensusChan)
+	go consensus.Consensus(&blockchain, nodesInfo, consensusChan)
 
 	// Node Server
 	http.HandleFunc("/transaction", func(w http.ResponseWriter, req *http.Request) {

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/wispwisp/scoin/block"
+	"github.com/wispwisp/scoin/node"
 )
 
 // TODO:
@@ -86,16 +87,15 @@ func getLongestBlockchainIndex(blockchains *[][]block.Block) (maxLenght int, max
 	return
 }
 
-func consensusIteration(blockchain *[]block.Block, consensusChan chan block.Block) {
+func consensusIteration(blockchain *[]block.Block, nodesInfo []node.NodeInfo, consensusChan chan block.Block) {
 	log.Println("Check other nodes...")
 
 	// 1) Ask all nodes in network for their blockchains
 	index := len(*blockchain) - 1
 
-	// TODO: list of nodes
 	var blockchains [][]block.Block
-	for j := 0; j < 1; j++ {
-		uri := "http://127.0.0.1:8090/blockchain/" + strconv.Itoa(index)
+	for _, nodeInfo := range nodesInfo {
+		uri := "http://" + nodeInfo.Uri + "/blockchain/" + strconv.Itoa(index)
 		needUpdate, blockchainPart := checkNode(uri, blockchain)
 		if needUpdate {
 			blockchains = append(blockchains, blockchainPart)
@@ -131,10 +131,10 @@ func consensusIteration(blockchain *[]block.Block, consensusChan chan block.Bloc
 	}
 }
 
-func Consensus(blockchain *[]block.Block, consensusChan chan block.Block) {
+func Consensus(blockchain *[]block.Block, nodesInfo []node.NodeInfo, consensusChan chan block.Block) {
 	ticker := time.NewTicker(2 * time.Second)
 	for {
 		<-ticker.C
-		consensusIteration(blockchain, consensusChan)
+		consensusIteration(blockchain, nodesInfo, consensusChan)
 	}
 }
