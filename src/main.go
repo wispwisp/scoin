@@ -18,11 +18,13 @@ import (
 )
 
 type Args struct {
-	Port *string
+	Port           *string
+	InitBlockchain *bool
 }
 
 func registerArgs() (args Args) {
 	args.Port = flag.String("port", "8090", "server port")
+	args.InitBlockchain = flag.Bool("init", false, "make initial trasaction")
 	flag.Parse()
 	return
 }
@@ -52,8 +54,8 @@ func main() {
 	args := registerArgs()
 	nodesInfo := loadNodesFromFile()
 
-	// Create First block (todo: arg --first <addr>)
-	if true {
+	if *args.InitBlockchain {
+		log.Println("Make initial transaction, create first block")
 		firstTransaction := transaction.Transaction{From: "network", To: "addr1", Amount: 50}
 		b := block.Block{Index: 0, PrevHash: "none", Nonce: 0, Transactions: []transaction.Transaction{firstTransaction}}
 		blockchain = append(blockchain, b)

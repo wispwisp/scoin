@@ -30,6 +30,8 @@ func requestForNode(uri string) (blockchainPart []block.Block, success bool) {
 	}
 	defer resp.Body.Close()
 
+	// TODO If resp not succsess: log and exit
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Println("error parsing response body:", err)
@@ -38,7 +40,7 @@ func requestForNode(uri string) (blockchainPart []block.Block, success bool) {
 
 	err = json.Unmarshal(body, &blockchainPart)
 	if err != nil {
-		log.Println("error parsing request's json transaction:", err)
+		log.Println("error parsing blockchain part:", err)
 		return
 	}
 
@@ -71,6 +73,7 @@ func checkNode(uri string, blockchain *[]block.Block) (needUpdate bool, blockcha
 
 	if lenOfRest != 1 {
 		needUpdate = true
+		blockchainPart = blockchainPart[1:] // Remove starting block of blockchain part
 	}
 
 	return
@@ -99,30 +102,24 @@ func consensusIteration(blockchain *[]block.Block, nodesInfo *[]node.NodeInfo, c
 		needUpdate, blockchainPart := checkNode(uri, blockchain)
 		if needUpdate {
 			blockchains = append(blockchains, blockchainPart)
-			log.Println("update blockchain by", blockchainPart)
 		}
 	}
 
 	// Any blockchains to update current node?
 	recievedFromOtherNode := false
 	if len(blockchains) != 0 {
-		maxLenght, maxBlockChainIndex := getLongestBlockchainIndex(&blockchains)
-		log.Println(maxLenght, maxBlockChainIndex)
-		log.Println("max blockchain", blockchains[maxBlockChainIndex])
-
-		// If longer blockchain found - use it:
-		if maxLenght > 1 {
-			// TODO: validate recieved blockchain
-			*blockchain = append(*blockchain, blockchains[maxBlockChainIndex]...)
-			recievedFromOtherNode = true // drop current mined block futher (if any)
-		}
+		_, maxBlockChainIndex := getLongestBlockchainIndex(&blockchains)
+		// TODO: validate recieved blockchain
+		*blockchain = append(*blockchain, blockchains[maxBlockChainIndex]...)
+		recievedFromOtherNode = true // drop current mined block futher (if any)
+		log.Println("Current blockchain updated from other node. Update blocks:", blockchains[maxBlockChainIndex])
 	}
 
 	// Check for current node POW result
 	select {
 	case nextBlock := <-consensusChan:
-		log.Println("Block from current node POW recieved, update blockchain")
 		if !recievedFromOtherNode {
+			log.Println("Block from current node POW recieved, update blockchain")
 			*blockchain = append(*blockchain, nextBlock)
 		} else {
 			log.Println("Current blockchain updated from other node, drop current mined block")
