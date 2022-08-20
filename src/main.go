@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 
@@ -29,36 +28,28 @@ func registerArgs() (args Args) {
 	return
 }
 
-func loadNodesFromFile() (nodesInfo []node.NodeInfo) {
-	fileName := "../conf/nodes.json"
-	data, err := os.ReadFile(fileName)
-
-	if err != nil {
-		log.Println("Error opening nodes files:", err)
-		return
-	}
-
-	err = json.Unmarshal(data, &nodesInfo)
-	if err != nil {
-		log.Println("error parsing node info:", err)
-		return
-	}
-
-	log.Println(fileName, "readed")
-	return
-}
-
 func main() {
 	var blockchain []block.Block
 
 	args := registerArgs()
-	nodesInfo := loadNodesFromFile()
+
+	fileName := "../conf/nodes.json"
+	var nodesInfo node.NodesInfo
+	if err := nodesInfo.LoadFromFile(fileName); err != nil {
+		log.Println("Error loading from ", fileName, ": ", err)
+		return
+	}
 
 	if *args.InitBlockchain {
 		log.Println("Make initial transaction, create first block")
 		firstTransaction := transaction.Transaction{From: "network", To: "addr1", Amount: 50}
 		b := block.Block{Index: 0, PrevHash: "none", Nonce: 0, Transactions: []transaction.Transaction{firstTransaction}}
 		blockchain = append(blockchain, b)
+	} else {
+		// TODO
+		log.Println("Sync blockchain from other nodes")
+		log.Println("UNIMPLEMENTED. extiting")
+		return
 	}
 
 	// Start mining
@@ -140,13 +131,6 @@ func main() {
 	http.HandleFunc("/addnode", func(w http.ResponseWriter, req *http.Request) {
 		log.Println("'/addnode' HTTP handler - add addnode")
 
-		// TODO: sync on nodeInfo list.
-		if true {
-			log.Println("UNIMPLEMETED")
-			http.Error(w, "UNIMPLEMETED (until sync desicion)", http.StatusBadRequest)
-			return
-		}
-
 		body, err := io.ReadAll(req.Body)
 		if err != nil {
 			log.Println("error parsing request body:", err)
@@ -162,8 +146,7 @@ func main() {
 			return
 		}
 
-		// TODO: mutex
-		nodesInfo = append(nodesInfo, nodeInfo)
+		nodesInfo.Add(&nodeInfo)
 	})
 
 	log.Println("Server started on", *args.Port, "port")

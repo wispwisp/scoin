@@ -30,7 +30,7 @@ func requestForNode(uri string) (blockchainPart []block.Block, success bool) {
 	}
 	defer resp.Body.Close()
 
-	// TODO If resp not succsess: log and exit
+	// TODO If resp not succsess: log and exit !
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -90,14 +90,14 @@ func getLongestBlockchainIndex(blockchains *[][]block.Block) (maxLenght int, max
 	return
 }
 
-func consensusIteration(blockchain *[]block.Block, nodesInfo *[]node.NodeInfo, consensusChan chan block.Block) {
+func consensusIteration(blockchain *[]block.Block, nodesInfo *node.NodesInfo, consensusChan chan block.Block) {
 	log.Println("Check other nodes...")
 
 	// 1) Ask all nodes in network for their blockchains
 	index := len(*blockchain) - 1
 
 	var blockchains [][]block.Block
-	for _, nodeInfo := range *nodesInfo {
+	for _, nodeInfo := range nodesInfo.Get() {
 		uri := "http://" + nodeInfo.Uri + "/blockchain/" + strconv.Itoa(index)
 		needUpdate, blockchainPart := checkNode(uri, blockchain)
 		if needUpdate {
@@ -128,7 +128,7 @@ func consensusIteration(blockchain *[]block.Block, nodesInfo *[]node.NodeInfo, c
 	}
 }
 
-func Consensus(blockchain *[]block.Block, nodesInfo *[]node.NodeInfo, consensusChan chan block.Block) {
+func Consensus(blockchain *[]block.Block, nodesInfo *node.NodesInfo, consensusChan chan block.Block) {
 	ticker := time.NewTicker(2 * time.Second)
 	for {
 		<-ticker.C
