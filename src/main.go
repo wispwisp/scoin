@@ -29,7 +29,7 @@ func registerArgs() (args Args) {
 }
 
 func main() {
-	var blockchain []block.Block // TODO: mutex
+	var blockchain block.Blockchain
 
 	args := registerArgs()
 
@@ -42,8 +42,9 @@ func main() {
 	if *args.InitBlockchain {
 		log.Println("Make initial transaction, create first block")
 		firstTransaction := transaction.Transaction{From: "network", To: "addr1", Amount: 50}
-		b := block.Block{Index: 0, PrevHash: "none", Nonce: 0, Transactions: []transaction.Transaction{firstTransaction}}
-		blockchain = append(blockchain, b)
+		blockchain.Add(&block.Block{
+			Index: 0, PrevHash: "none", Nonce: 0,
+			Transactions: []transaction.Transaction{firstTransaction}})
 	} else {
 		// TODO
 		log.Println("Sync blockchain from other nodes")
@@ -85,7 +86,7 @@ func main() {
 
 	http.HandleFunc("/blockchain", func(w http.ResponseWriter, req *http.Request) {
 		log.Println("'/blockchain' HTTP handler - show blockchain to clinet.")
-		if encodeErr := json.NewEncoder(w).Encode(blockchain); encodeErr != nil {
+		if encodeErr := json.NewEncoder(w).Encode(blockchain.Get()); encodeErr != nil {
 			log.Println("Encode blockchain to json failed, err: ", encodeErr)
 			http.NotFound(w, req)
 			return
@@ -111,13 +112,13 @@ func main() {
 			return
 		}
 
-		if index >= len(blockchain) {
+		if index >= blockchain.Len() {
 			log.Println("Invalid block index requested: ", index)
 			http.Error(w, "Invalid block index requested", http.StatusBadRequest)
 			return
 		}
 
-		blockchainPart := blockchain[index:]
+		blockchainPart := blockchain.GetSlice(index)
 
 		if encodeErr := json.NewEncoder(w).Encode(blockchainPart); encodeErr != nil {
 			log.Println("Encode blockchain to json failed, err: ", encodeErr)

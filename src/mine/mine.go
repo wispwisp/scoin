@@ -58,7 +58,7 @@ func ProofOfWork(block *block.Block, nonce int) (int, bool) {
 }
 
 func Mine(
-	blockchain *[]block.Block,
+	blockchain *block.Blockchain,
 	nodesInfo *node.NodesInfo,
 	transactionsChan chan transaction.Transaction,
 	consensusChan chan block.Block,
@@ -68,8 +68,8 @@ func Mine(
 	for {
 		transactions := accumulateTransactions(nodesInfo, transactionsChan)
 
-		currentBlockchainLen := len(*blockchain)
-		lastBlock := (*blockchain)[currentBlockchainLen-1]
+		currentBlockchainLen := blockchain.Len()
+		lastBlock := blockchain.GetLastBlock()
 		nextBlock := lastBlock.GenerateNextBlock(transactions)
 
 		// Find nonce
@@ -77,8 +77,8 @@ func Mine(
 		found := false
 		for {
 			// Check if other node found consensus earlier
-			if currentBlockchainLen != len(*blockchain) {
-				log.Println("currentBlockchainLen != len(*blockchain): ", currentBlockchainLen, len(*blockchain))
+			if currentBlockchainLen != blockchain.Len() {
+				log.Println("Other node found consesnus, drop current mining")
 				break
 			}
 

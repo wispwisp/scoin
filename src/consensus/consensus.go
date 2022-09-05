@@ -48,7 +48,7 @@ func requestForNode(uri string) (blockchainPart []block.Block, success bool) {
 	return
 }
 
-func checkNode(uri string, blockchain *[]block.Block) (needUpdate bool, blockchainPart []block.Block) {
+func checkNode(uri string, blockchain *block.Blockchain) (needUpdate bool, blockchainPart []block.Block) {
 	log.Println("Check for node: ", uri)
 
 	blockchainPart, success := requestForNode(uri)
@@ -63,7 +63,7 @@ func checkNode(uri string, blockchain *[]block.Block) (needUpdate bool, blockcha
 	}
 
 	block := blockchainPart[0]
-	lastBlock := (*blockchain)[len(*blockchain)-1]
+	lastBlock := blockchain.GetLastBlock()
 
 	// Validate previous blockchain by checking hashes
 	if block.PrevHash != lastBlock.PrevHash {
@@ -90,11 +90,11 @@ func getLongestBlockchainIndex(blockchains *[][]block.Block) (maxLenght int, max
 	return
 }
 
-func consensusIteration(blockchain *[]block.Block, nodesInfo *node.NodesInfo, consensusChan chan block.Block) {
+func consensusIteration(blockchain *block.Blockchain, nodesInfo *node.NodesInfo, consensusChan chan block.Block) {
 	log.Println("Check other nodes...")
 
 	// 1) Ask all nodes in network for their blockchains
-	index := len(*blockchain) - 1
+	index := blockchain.Len() - 1
 
 	var blockchains [][]block.Block
 	for _, nodeInfo := range nodesInfo.Get() {
@@ -110,7 +110,7 @@ func consensusIteration(blockchain *[]block.Block, nodesInfo *node.NodesInfo, co
 	if len(blockchains) != 0 {
 		_, maxBlockChainIndex := getLongestBlockchainIndex(&blockchains)
 		// TODO: validate recieved blockchain
-		*blockchain = append(*blockchain, blockchains[maxBlockChainIndex]...)
+		blockchain.AddBlocks(blockchains[maxBlockChainIndex]...)
 		recievedFromOtherNode = true // drop current mined block futher (if any)
 		log.Println("Current blockchain updated from other node. Update blocks:", blockchains[maxBlockChainIndex])
 	}
@@ -120,7 +120,7 @@ func consensusIteration(blockchain *[]block.Block, nodesInfo *node.NodesInfo, co
 	case nextBlock := <-consensusChan:
 		if !recievedFromOtherNode {
 			log.Println("Block from current node POW recieved, update blockchain")
-			*blockchain = append(*blockchain, nextBlock)
+			blockchain.Add(&nextBlock)
 		} else {
 			log.Println("Current blockchain updated from other node, drop current mined block")
 		}
@@ -128,7 +128,7 @@ func consensusIteration(blockchain *[]block.Block, nodesInfo *node.NodesInfo, co
 	}
 }
 
-func Consensus(blockchain *[]block.Block, nodesInfo *node.NodesInfo, consensusChan chan block.Block) {
+func Consensus(blockchain *block.Blockchain, nodesInfo *node.NodesInfo, consensusChan chan block.Block) {
 	ticker := time.NewTicker(2 * time.Second)
 	for {
 		<-ticker.C
