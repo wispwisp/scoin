@@ -1,14 +1,12 @@
 package consensus
 
 import (
-	"encoding/json"
-	"io"
 	"log"
-	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/wispwisp/scoin/block"
+	"github.com/wispwisp/scoin/nethelpers"
 	"github.com/wispwisp/scoin/node"
 )
 
@@ -22,36 +20,10 @@ import (
 // if we have consensus, node should drop transactions
 // which has been added to a new block.
 
-func requestForNode(uri string) (blockchainPart []block.Block, success bool) {
-	resp, err := http.Get(uri)
-	if err != nil {
-		log.Println("Failed to request node ", uri, ", error ", err)
-		return
-	}
-	defer resp.Body.Close()
-
-	// TODO If resp not succsess: log and exit !
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Println("error parsing response body:", err)
-		return
-	}
-
-	err = json.Unmarshal(body, &blockchainPart)
-	if err != nil {
-		log.Println("error parsing blockchain part:", err)
-		return
-	}
-
-	success = true
-	return
-}
-
 func checkNode(uri string, blockchain *block.Blockchain) (needUpdate bool, blockchainPart []block.Block) {
 	log.Println("Check for node: ", uri)
 
-	blockchainPart, success := requestForNode(uri)
+	blockchainPart, success := nethelpers.RequestForNode(uri)
 	if !success {
 		return
 	}
@@ -94,6 +66,9 @@ func consensusIteration(blockchain *block.Blockchain, nodesInfo *node.NodesInfo,
 	log.Println("Check other nodes...")
 
 	// 1) Ask all nodes in network for their blockchains
+	if blockchain.Len() == 0 {
+		panic("'blockchain.Len() == 0' - should not happend at current time")
+	}
 	index := blockchain.Len() - 1
 
 	var blockchains [][]block.Block

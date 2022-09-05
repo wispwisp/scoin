@@ -12,6 +12,7 @@ import (
 	"github.com/wispwisp/scoin/block"
 	"github.com/wispwisp/scoin/consensus"
 	"github.com/wispwisp/scoin/mine"
+	"github.com/wispwisp/scoin/nethelpers"
 	"github.com/wispwisp/scoin/node"
 	"github.com/wispwisp/scoin/transaction"
 )
@@ -28,9 +29,27 @@ func registerArgs() (args Args) {
 	return
 }
 
-func main() {
-	var blockchain block.Blockchain
+func DefaultInitBlockchain(blockchain *block.Blockchain) {
+	log.Println("Make initial transaction, create first block")
+	firstTransaction := transaction.Transaction{From: "network", To: "addr1", Amount: 50}
+	blockchain.Add(&block.Block{
+		Index: 0, PrevHash: "none", Nonce: 0,
+		Transactions: []transaction.Transaction{firstTransaction}})
+}
 
+func SetBlockchainFromOtherNode(blockchain *block.Blockchain, nodesInfo *node.NodesInfo) bool {
+	log.Println("Sync blockchain from other nodes...")
+	otherBlockchain := nethelpers.GetLongestBlockchainFromNodes(nodesInfo)
+	if len(otherBlockchain) == 0 {
+		log.Println("Blockchains not found.")
+		return false
+	}
+
+	blockchain.AddBlocks(otherBlockchain...)
+	return true
+}
+
+func main() {
 	args := registerArgs()
 
 	fileName := "../conf/nodes.json"
@@ -39,17 +58,14 @@ func main() {
 		log.Println("Error loading from", fileName, "error:", err)
 	}
 
+	var blockchain block.Blockchain
+
 	if *args.InitBlockchain {
-		log.Println("Make initial transaction, create first block")
-		firstTransaction := transaction.Transaction{From: "network", To: "addr1", Amount: 50}
-		blockchain.Add(&block.Block{
-			Index: 0, PrevHash: "none", Nonce: 0,
-			Transactions: []transaction.Transaction{firstTransaction}})
+		DefaultInitBlockchain(&blockchain)
 	} else {
-		// TODO
-		log.Println("Sync blockchain from other nodes")
-		log.Println("UNIMPLEMENTED. extiting")
-		return
+		if !SetBlockchainFromOtherNode(&blockchain, &nodesInfo) {
+			return
+		}
 	}
 
 	// Start mining
