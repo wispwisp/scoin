@@ -29,15 +29,14 @@ func registerArgs() (args Args) {
 }
 
 func main() {
-	var blockchain []block.Block
+	var blockchain []block.Block // TODO: mutex
 
 	args := registerArgs()
 
 	fileName := "../conf/nodes.json"
 	var nodesInfo node.NodesInfo
 	if err := nodesInfo.LoadFromFile(fileName); err != nil {
-		log.Println("Error loading from ", fileName, ": ", err)
-		return
+		log.Println("Error loading from", fileName, "error:", err)
 	}
 
 	if *args.InitBlockchain {
@@ -55,7 +54,7 @@ func main() {
 	// Start mining
 	transactionsChan := make(chan transaction.Transaction, 100)
 	consensusChan := make(chan block.Block)
-	go mine.Mine(&blockchain, transactionsChan, consensusChan)
+	go mine.Mine(&blockchain, &nodesInfo, transactionsChan, consensusChan)
 	go consensus.Consensus(&blockchain, &nodesInfo, consensusChan)
 
 	// http handlers:
@@ -82,7 +81,6 @@ func main() {
 		}
 
 		transactionsChan <- t
-		// TODO: send that transaction for all other nodes in blockchain
 	})
 
 	http.HandleFunc("/blockchain", func(w http.ResponseWriter, req *http.Request) {

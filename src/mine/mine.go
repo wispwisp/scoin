@@ -6,21 +6,36 @@ import (
 	"time"
 
 	"github.com/wispwisp/scoin/block"
+	"github.com/wispwisp/scoin/nethelpers"
+	"github.com/wispwisp/scoin/node"
 	"github.com/wispwisp/scoin/transaction"
 )
 
 const maxAccumulateTransactions = 5
 const waitToProcessTransactionsAnywayInSeconds = 10
 
+func isUnique(transactions *[]transaction.Transaction, t *transaction.Transaction) bool {
+	for _, s := range *transactions {
+		if s == *t {
+			return false
+		}
+	}
+	return true
+}
+
 // Accumulate enough transactions (or process it anyway if no transaction for a period of time)
 func accumulateTransactions(
+	nodesInfo *node.NodesInfo,
 	transactionsChan chan transaction.Transaction,
 ) (transactions []transaction.Transaction) {
 	counter := 0
 	for {
 		select {
 		case transaction := <-transactionsChan:
-			transactions = append(transactions, transaction)
+			if isUnique(&transactions, &transaction) {
+				transactions = append(transactions, transaction)
+				nethelpers.SendTransactionToOtherNodes(nodesInfo, &transaction)
+			}
 			counter++
 			if counter > maxAccumulateTransactions {
 				return
@@ -44,13 +59,14 @@ func ProofOfWork(block *block.Block, nonce int) (int, bool) {
 
 func Mine(
 	blockchain *[]block.Block,
+	nodesInfo *node.NodesInfo,
 	transactionsChan chan transaction.Transaction,
 	consensusChan chan block.Block,
 ) {
 	log.Println("Mine")
 
 	for {
-		transactions := accumulateTransactions(transactionsChan)
+		transactions := accumulateTransactions(nodesInfo, transactionsChan)
 
 		currentBlockchainLen := len(*blockchain)
 		lastBlock := (*blockchain)[currentBlockchainLen-1]

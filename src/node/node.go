@@ -1,9 +1,9 @@
 package node
 
 import (
-	"sync"
-	"os"
 	"encoding/json"
+	"os"
+	"sync"
 )
 
 type NodeInfo struct {
@@ -21,12 +21,15 @@ func (ni *NodesInfo) Add(nodeInfo *NodeInfo) {
 	ni.nodesInfo = append(ni.nodesInfo, *nodeInfo)
 }
 
-func (ni *NodesInfo) Get() []NodeInfo { // Copy
+func (ni *NodesInfo) Get() []NodeInfo {
 	ni.mtx.Lock()
 	defer ni.mtx.Unlock()
-	return ni.nodesInfo
-}
 
+	aCopy := make([]NodeInfo, len(ni.nodesInfo))
+	copy(aCopy, ni.nodesInfo)
+
+	return aCopy
+}
 
 func (ni *NodesInfo) LoadFromFile(fileName string) error {
 	data, err := os.ReadFile(fileName)
