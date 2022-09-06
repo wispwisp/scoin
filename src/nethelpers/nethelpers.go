@@ -79,6 +79,7 @@ func GetLongestBlockchainFromNodes(nodesInfo *node.NodesInfo) []block.Block {
 	for i, nodeInfo := range ni {
 		wg.Add(1)
 		go func(uri string, i int) {
+			defer wg.Done()
 			blockchainPart, success := RequestForNode(uri)
 			if success {
 				blockchains[i] = blockchainPart

@@ -20,11 +20,13 @@ import (
 type Args struct {
 	Port           *string
 	InitBlockchain *bool
+	InitalNodeAddr *string
 }
 
 func registerArgs() (args Args) {
 	args.Port = flag.String("port", "8090", "server port")
 	args.InitBlockchain = flag.Bool("init", false, "make initial trasaction")
+	args.InitalNodeAddr = flag.String("node", "", "node addr for initialization")
 	flag.Parse()
 	return
 }
@@ -59,6 +61,11 @@ func main() {
 	}
 
 	var blockchain block.Blockchain
+
+	if len(*args.InitalNodeAddr) != 0 {
+		nodesInfo.Add(&node.NodeInfo{Uri: *args.InitalNodeAddr})
+		log.Println("Add Nodes info with URL:", *args.InitalNodeAddr)
+	}
 
 	if *args.InitBlockchain {
 		DefaultInitBlockchain(&blockchain)
