@@ -15,10 +15,22 @@ type NodesInfo struct {
 	nodesInfo []NodeInfo
 }
 
+func isUnique(nodesInfo *[]NodeInfo, nodeInfo *NodeInfo) bool {
+	for _, ni := range *nodesInfo {
+		if ni == *nodeInfo {
+			return false
+		}
+	}
+	return true
+}
+
 func (ni *NodesInfo) Add(nodeInfo *NodeInfo) {
 	ni.mtx.Lock()
 	defer ni.mtx.Unlock()
-	ni.nodesInfo = append(ni.nodesInfo, *nodeInfo)
+
+	if isUnique(&ni.nodesInfo, nodeInfo) {
+		ni.nodesInfo = append(ni.nodesInfo, *nodeInfo)
+	}
 }
 
 func (ni *NodesInfo) Get() []NodeInfo {
