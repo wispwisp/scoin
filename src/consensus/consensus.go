@@ -51,17 +51,6 @@ func checkNode(uri string, blockchain *block.Blockchain) (needUpdate bool, block
 	return
 }
 
-func getLongestBlockchainIndex(blockchains *[][]block.Block) (maxLenght int, maxBlockChainIndex int) {
-	for i, bc := range *blockchains {
-		l := len(bc)
-		if l > maxLenght {
-			maxLenght = l
-			maxBlockChainIndex = i
-		}
-	}
-	return
-}
-
 func consensusIteration(blockchain *block.Blockchain, nodesInfo *node.NodesInfo, consensusChan chan block.Block) {
 	log.Println("Check other nodes...")
 
@@ -83,7 +72,7 @@ func consensusIteration(blockchain *block.Blockchain, nodesInfo *node.NodesInfo,
 	// Any blockchains to update current node?
 	recievedFromOtherNode := false
 	if len(blockchains) != 0 {
-		_, maxBlockChainIndex := getLongestBlockchainIndex(&blockchains)
+		_, maxBlockChainIndex := nethelpers.GetLongestBlockchainIndex(&blockchains)
 		// TODO: validate recieved blockchain
 		blockchain.AddBlocks(blockchains[maxBlockChainIndex]...)
 		recievedFromOtherNode = true // drop current mined block futher (if any)

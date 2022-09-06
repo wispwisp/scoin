@@ -65,6 +65,17 @@ func RequestForNode(uri string) (blockchainPart []block.Block, success bool) {
 	return
 }
 
+func GetLongestBlockchainIndex(blockchains *[][]block.Block) (maxLenght int, maxBlockchainIndex int) {
+	for i := 0; i < len(*blockchains); i++ {
+		l := len((*blockchains)[i])
+		if l > maxLenght {
+			maxLenght = l
+			maxBlockchainIndex = i
+		}
+	}
+	return
+}
+
 func GetLongestBlockchainFromNodes(nodesInfo *node.NodesInfo) []block.Block {
 	ni := nodesInfo.Get()
 	sz := len(ni)
@@ -89,15 +100,7 @@ func GetLongestBlockchainFromNodes(nodesInfo *node.NodesInfo) []block.Block {
 
 	wg.Wait()
 
-	var maxLen int
-	var maxLenIndex int
-	for i := 0; i < len(blockchains); i++ {
-		l := len(blockchains[i])
-		if l > maxLen {
-			maxLen = l
-			maxLenIndex = i
-		}
-	}
+	_, maxIndex := GetLongestBlockchainIndex(&blockchains)
 
-	return blockchains[maxLenIndex]
+	return blockchains[maxIndex]
 }
